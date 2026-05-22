@@ -291,6 +291,28 @@ impl AppState {
         self.mark_session_dirty();
     }
 
+    /// Index of the workspace whose `×` close button covers `(col, row)`,
+    /// if any.
+    pub(super) fn workspace_close_at(&self, col: u16, row: u16) -> Option<usize> {
+        let cards = if self.view.workspace_card_areas.is_empty() {
+            crate::ui::compute_workspace_card_areas(self, self.view.sidebar_rect)
+        } else {
+            self.view.workspace_card_areas.clone()
+        };
+        for card in cards {
+            if row != card.rect.y {
+                continue;
+            }
+            let Some(close_x) = crate::ui::workspace_close_button_x(card.rect) else {
+                continue;
+            };
+            if col == close_x {
+                return Some(card.ws_idx);
+            }
+        }
+        None
+    }
+
     pub(super) fn workspace_at_row(&self, row: u16) -> Option<usize> {
         let footer = self.sidebar_footer_rect();
         if footer == Rect::default() {
@@ -993,6 +1015,51 @@ mod tests {
         let snapshot = capture_snapshot(&app.state);
         assert_eq!(snapshot.active, Some(1));
         assert_eq!(snapshot.selected, 1);
+    }
+
+    #[test]
+    fn clicking_workspace_close_button_with_confirm_off_closes_workspace_immediately() {
+        let mut app = app_for_mouse_test();
+        app.state.workspaces = vec![Workspace::test_new("a"), Workspace::test_new("b")];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.confirm_close = false;
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+
+        let card = app.state.view.workspace_card_areas[1].rect;
+        let close_x = crate::ui::workspace_close_button_x(card).expect("close button");
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            close_x,
+            card.y,
+        ));
+
+        assert_eq!(app.state.workspaces.len(), 1);
+        assert_eq!(app.state.workspaces[0].custom_name.as_deref(), Some("a"));
+        assert!(app.state.workspace_press.is_none());
+    }
+
+    #[test]
+    fn clicking_workspace_close_button_with_confirm_on_opens_confirm_dialog() {
+        let mut app = app_for_mouse_test();
+        app.state.workspaces = vec![Workspace::test_new("a"), Workspace::test_new("b")];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.confirm_close = true;
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+
+        let card = app.state.view.workspace_card_areas[1].rect;
+        let close_x = crate::ui::workspace_close_button_x(card).expect("close button");
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            close_x,
+            card.y,
+        ));
+
+        assert_eq!(app.state.mode, Mode::ConfirmClose);
+        assert_eq!(app.state.selected, 1);
+        // Workspace is not removed yet — awaiting confirmation.
+        assert_eq!(app.state.workspaces.len(), 2);
     }
 
     #[test]

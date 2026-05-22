@@ -521,6 +521,16 @@ impl AppState {
                         }
                     }
 
+                    if let Some(idx) = self.workspace_close_at(mouse.column, mouse.row) {
+                        self.selected = idx;
+                        if self.confirm_close {
+                            super::modal::open_confirm_close(self);
+                        } else {
+                            self.close_selected_workspace();
+                        }
+                        return None;
+                    }
+
                     if let Some(idx) = self.workspace_at_row(mouse.row) {
                         self.workspace_press = Some(WorkspacePressState {
                             ws_idx: idx,

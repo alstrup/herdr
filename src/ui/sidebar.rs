@@ -19,6 +19,20 @@ use crate::terminal::TerminalRuntimeRegistry;
 const WORKSPACE_SECTION_HEADER_ROWS: u16 = 2;
 const AGENT_PANEL_HEADER_ROWS: u16 = 3;
 
+/// Minimum width required before we show a `×` close button on a workspace
+/// row. Below this, the label needs every cell it can get.
+const WORKSPACE_CLOSE_BUTTON_MIN_WIDTH: u16 = 12;
+
+/// X-position of the `×` close button cell for a given workspace card
+/// rect, or `None` if the card is too narrow to show one.
+pub(crate) fn workspace_close_button_x(rect: Rect) -> Option<u16> {
+    if rect.width >= WORKSPACE_CLOSE_BUTTON_MIN_WIDTH {
+        Some(rect.x + rect.width - 2)
+    } else {
+        None
+    }
+}
+
 pub(crate) struct AgentPanelEntry {
     pub ws_idx: usize,
     pub tab_idx: usize,
@@ -945,6 +959,17 @@ fn render_workspace_list(
             Paragraph::new(Line::from(line1)),
             Rect::new(card.rect.x, row_y, card.rect.width, 1),
         );
+
+        if let Some(close_x) = workspace_close_button_x(card.rect) {
+            let bg_for_marker = row_bg.unwrap_or(p.panel_bg);
+            let fg = match row_bg {
+                Some(bg) => contrast_fg_for(bg, p),
+                None => p.overlay0,
+            };
+            let buf = frame.buffer_mut();
+            buf[(close_x, row_y)].set_symbol("×");
+            buf[(close_x, row_y)].set_style(Style::default().fg(fg).bg(bg_for_marker));
+        }
 
         if row_height > 1 && row_y + 1 < list_bottom {
             if let Some(branch) = ws.branch() {

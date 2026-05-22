@@ -8,6 +8,7 @@
 - Added `auto_assign` (default on) under `[ui.entity_color]`: workspaces and tabs without an explicit color get a deterministic, perceptually-spread color via a 3D Halton sequence in OKLCH space. The first tab in a workspace inherits the workspace color so they match out of the box.
 - Pane background tint is blended toward the host terminal's reported background (OSC 11) at low alpha so WCAG text contrast is preserved; tab backgrounds stay fully saturated as landmarks. Active tab shares the pane's tinted bg so the two surfaces visually merge.
 - Added a `×` close button on each tab. Click it to close that tab without changing the active tab; if it's the only tab left in the workspace, the workspace closes (subject to confirm-on-close).
+- Added a `×` close button on each workspace row in the sidebar (when the row is at least 12 cells wide). Click it to close that workspace, honoring the existing `confirm_close` setting.
 
 ## [0.6.0] - 2026-05-20
 
