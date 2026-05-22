@@ -399,7 +399,11 @@ pub(super) fn render_tab_bar(app: &AppState, frame: &mut Frame, area: Rect) {
 
     if app.mouse_capture && app.view.new_tab_hit_area.width > 0 {
         frame.render_widget(
-            Paragraph::new(" + ").style(Style::default().fg(p.overlay1)),
+            Paragraph::new(" + ").style(
+                Style::default()
+                    .fg(p.accent)
+                    .add_modifier(Modifier::BOLD),
+            ),
             app.view.new_tab_hit_area,
         );
     }
