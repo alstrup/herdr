@@ -6,8 +6,9 @@ use ratatui::{
     Frame,
 };
 
+use super::color::{blend_toward, host_terminal_bg, tab_color, ENTITY_TINT_ALPHA};
 use super::scrollbar::{render_pane_scrollbar, should_show_scrollbar};
-use super::widgets::{blend_toward, host_terminal_bg, panel_contrast_fg, tab_color, ENTITY_TINT_ALPHA};
+use super::widgets::panel_contrast_fg;
 use crate::app::state::Palette;
 use crate::app::{AppState, Mode};
 use crate::layout::PaneInfo;

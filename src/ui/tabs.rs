@@ -5,10 +5,10 @@ use ratatui::{
     Frame,
 };
 
-use super::widgets::{
-    blend_toward, contrast_fg_for, host_terminal_bg, panel_contrast_fg, tab_color,
-    ENTITY_TINT_ALPHA,
+use super::color::{
+    blend_toward, contrast_fg_for, host_terminal_bg, tab_color, ENTITY_TINT_ALPHA,
 };
+use super::widgets::panel_contrast_fg;
 use crate::app::AppState;
 
 const MIN_TAB_WIDTH: u16 = 8;

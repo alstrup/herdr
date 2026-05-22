@@ -6,11 +6,11 @@ use ratatui::{
     Frame,
 };
 
-use super::scrollbar::{render_scrollbar, should_show_scrollbar};
-use super::status::{agent_icon, state_dot, state_label, state_label_color};
-use super::widgets::{
+use super::color::{
     blend_toward, contrast_fg_for, host_terminal_bg, workspace_color, ENTITY_TINT_ALPHA,
 };
+use super::scrollbar::{render_scrollbar, should_show_scrollbar};
+use super::status::{agent_icon, state_dot, state_label, state_label_color};
 use crate::app::state::{AgentPanelScope, Palette};
 use crate::app::{AppState, Mode};
 use crate::detect::AgentState;
