@@ -60,6 +60,9 @@ pub struct Workspace {
     pub id: String,
     /// User-provided override. If set, auto-derived identity stops updating.
     pub custom_name: Option<String>,
+    /// User-assigned color (named, hex, rgb). Used as a visual marker in the
+    /// tab bar, pane borders, and sidebar to make this workspace easy to spot.
+    pub color: Option<String>,
     /// Fallback workspace identity source for tests, old snapshots, or missing runtimes.
     pub identity_cwd: PathBuf,
     /// Cached current git branch for the workspace repo.
@@ -193,6 +196,7 @@ impl Workspace {
             Self {
                 id: generate_workspace_id(),
                 custom_name: None,
+                color: None,
                 identity_cwd: initial_cwd.clone(),
                 cached_git_branch: git_branch(&initial_cwd),
                 cached_git_ahead_behind: None,
@@ -545,6 +549,10 @@ impl Workspace {
         self.custom_name = Some(name);
     }
 
+    pub fn set_color(&mut self, color: Option<String>) {
+        self.color = color;
+    }
+
     pub fn resolved_identity_cwd(&self) -> Option<PathBuf> {
         Some(self.identity_cwd.clone())
     }
@@ -712,6 +720,7 @@ impl Workspace {
         panes.insert(root_id, PaneState::new(terminal_id));
         let tab = Tab {
             custom_name: None,
+            color: None,
             number: 1,
             root_pane: root_id,
             layout,
@@ -727,6 +736,7 @@ impl Workspace {
         Self {
             id: generate_workspace_id(),
             custom_name: Some(name.to_string()),
+            color: None,
             identity_cwd: identity_cwd.clone(),
             cached_git_branch: git_branch(&identity_cwd),
             cached_git_ahead_behind: None,
@@ -762,6 +772,7 @@ impl Workspace {
         panes.insert(root_id, PaneState::new(TerminalId::alloc()));
         let tab = Tab {
             custom_name: name.map(str::to_string),
+            color: None,
             number: self.tabs.len() + 1,
             root_pane: root_id,
             layout,

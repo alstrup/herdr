@@ -36,6 +36,7 @@ pub(super) fn panel_contrast_fg(p: &Palette) -> Color {
     }
 }
 
+
 pub(crate) fn centered_popup_rect(area: Rect, popup_w: u16, popup_h: u16) -> Option<Rect> {
     let popup_w = popup_w.min(area.width.saturating_sub(4));
     let popup_h = popup_h.min(area.height.saturating_sub(2));

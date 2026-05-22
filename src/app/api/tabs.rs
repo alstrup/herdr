@@ -52,7 +52,17 @@ impl App {
             cwd,
             focus,
             label,
+            color,
         } = params;
+        if let Some(color) = color.as_deref() {
+            if crate::config::try_parse_color(color).is_none() {
+                return encode_error(
+                    id,
+                    "invalid_color",
+                    format!("invalid color: {color}"),
+                );
+            }
+        }
         let ws_idx = if let Some(workspace_id) = workspace_id {
             let Some(ws_idx) = self.parse_workspace_id(&workspace_id) else {
                 return workspace_not_found(id, &workspace_id);
@@ -110,6 +120,16 @@ impl App {
                         crate::logging::tab_renamed(&workspace_id, &tab_id);
                     }
                 }
+                if let Some(color) = color {
+                    if let Some(tab) = self
+                        .state
+                        .workspaces
+                        .get_mut(ws_idx)
+                        .and_then(|ws| ws.tabs.get_mut(tab_idx))
+                    {
+                        tab.set_color(Some(color));
+                    }
+                }
                 if focus {
                     self.state.switch_workspace(ws_idx);
                     self.state.switch_tab(tab_idx);
@@ -152,6 +172,22 @@ impl App {
     }
 
     pub(super) fn handle_tab_rename(&mut self, id: String, params: TabRenameParams) -> String {
+        if params.label.is_none() && params.color.is_none() {
+            return encode_error(
+                id,
+                "invalid_request",
+                "tab rename requires label or color",
+            );
+        }
+        if let Some(color) = params.color.as_deref() {
+            if crate::config::try_parse_color(color).is_none() {
+                return encode_error(
+                    id,
+                    "invalid_color",
+                    format!("invalid color: {color}"),
+                );
+            }
+        }
         let Some((ws_idx, tab_idx)) = self.parse_tab_id(&params.tab_id) else {
             return tab_not_found(id, &params.tab_id);
         };
@@ -167,17 +203,24 @@ impl App {
         else {
             return tab_not_found(id, &params.tab_id);
         };
-        tab.set_custom_name(params.label.clone());
+        if let Some(label) = params.label.clone() {
+            tab.set_custom_name(label);
+        }
+        if let Some(color) = params.color.clone() {
+            tab.set_color(Some(color));
+        }
         crate::logging::tab_renamed(&workspace_id, &tab_id);
         self.schedule_session_save();
-        self.emit_event(EventEnvelope {
-            event: EventKind::TabRenamed,
-            data: EventData::TabRenamed {
-                tab_id: self.public_tab_id(ws_idx, tab_idx).unwrap(),
-                workspace_id: self.public_workspace_id(ws_idx),
-                label: params.label,
-            },
-        });
+        if let Some(label) = params.label {
+            self.emit_event(EventEnvelope {
+                event: EventKind::TabRenamed,
+                data: EventData::TabRenamed {
+                    tab_id: self.public_tab_id(ws_idx, tab_idx).unwrap(),
+                    workspace_id: self.public_workspace_id(ws_idx),
+                    label,
+                },
+            });
+        }
         let tab = self.tab_info(ws_idx, tab_idx).unwrap();
 
         encode_success(id, ResponseResult::TabInfo { tab })

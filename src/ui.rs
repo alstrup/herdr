@@ -5,6 +5,7 @@ use ratatui::{
     Frame,
 };
 
+mod color;
 mod dialogs;
 mod keybind_help;
 mod menus;
@@ -663,6 +664,7 @@ mod tests {
         app.active = Some(0);
         app.selected = 0;
         app.mode = Mode::Terminal;
+        app.entity_color.auto_assign = false;
 
         compute_view(&mut app, Rect::new(0, 0, 80, 20));
 
@@ -694,6 +696,7 @@ mod tests {
         app.active = Some(0);
         app.selected = 0;
         app.mode = Mode::Terminal;
+        app.entity_color.auto_assign = false;
 
         compute_view(&mut app, Rect::new(0, 0, 80, 20));
 

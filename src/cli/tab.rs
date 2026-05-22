@@ -58,6 +58,7 @@ fn tab_create(args: &[String]) -> std::io::Result<i32> {
     let mut cwd = None;
     let mut focus = false;
     let mut label = None;
+    let mut color = None;
 
     let mut index = 0;
     while index < args.len() {
@@ -86,6 +87,14 @@ fn tab_create(args: &[String]) -> std::io::Result<i32> {
                 label = Some(value.clone());
                 index += 2;
             }
+            "--color" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("missing value for --color");
+                    return Ok(2);
+                };
+                color = Some(value.clone());
+                index += 2;
+            }
             "--focus" => {
                 focus = true;
                 index += 1;
@@ -108,6 +117,7 @@ fn tab_create(args: &[String]) -> std::io::Result<i32> {
             cwd,
             focus,
             label,
+            color,
         }),
     })?)
 }
@@ -149,16 +159,50 @@ fn tab_focus(args: &[String]) -> std::io::Result<i32> {
 }
 
 fn tab_rename(args: &[String]) -> std::io::Result<i32> {
-    if args.len() < 2 {
-        eprintln!("usage: herdr tab rename <tab_id> <label>");
+    if args.is_empty() {
+        eprintln!("usage: herdr tab rename <tab_id> [<label>] [--color COLOR]");
+        return Ok(2);
+    }
+
+    let tab_id = super::normalize_tab_id(&args[0]);
+    let mut color = None;
+    let mut label_parts: Vec<String> = Vec::new();
+
+    let mut index = 1;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--color" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("missing value for --color");
+                    return Ok(2);
+                };
+                color = Some(value.clone());
+                index += 2;
+            }
+            other => {
+                label_parts.push(other.to_string());
+                index += 1;
+            }
+        }
+    }
+
+    let label = if label_parts.is_empty() {
+        None
+    } else {
+        Some(label_parts.join(" "))
+    };
+
+    if label.is_none() && color.is_none() {
+        eprintln!("usage: herdr tab rename <tab_id> [<label>] [--color COLOR]");
         return Ok(2);
     }
 
     super::print_response(&super::send_request(&Request {
         id: "cli:tab:rename".into(),
         method: Method::TabRename(TabRenameParams {
-            tab_id: super::normalize_tab_id(&args[0]),
-            label: args[1..].join(" "),
+            tab_id,
+            label,
+            color,
         }),
     })?)
 }
@@ -185,10 +229,13 @@ fn print_tab_help() {
     eprintln!("herdr tab commands:");
     eprintln!("  herdr tab list [--workspace <workspace_id>]");
     eprintln!(
-        "  herdr tab create [--workspace <workspace_id>] [--cwd PATH] [--label TEXT] [--focus] [--no-focus]"
+        "  herdr tab create [--workspace <workspace_id>] [--cwd PATH] [--label TEXT] [--color COLOR] [--focus] [--no-focus]"
     );
     eprintln!("  herdr tab get <tab_id>");
     eprintln!("  herdr tab focus <tab_id>");
-    eprintln!("  herdr tab rename <tab_id> <label>");
+    eprintln!("  herdr tab rename <tab_id> [<label>] [--color COLOR]");
     eprintln!("  herdr tab close <tab_id>");
+    eprintln!();
+    eprintln!("Color accepts a named color (red, blue, cyan, orange, pink, ...),");
+    eprintln!("a hex code (#89b4fa), or rgb(r,g,b). Use \"default\" to clear.");
 }

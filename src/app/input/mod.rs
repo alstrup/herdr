@@ -203,6 +203,9 @@ impl App {
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
                 }
+                SettingsAction::SaveEntityColorToggle(field, enabled) => {
+                    self.save_entity_color_toggle(field, enabled)
+                }
                 SettingsAction::InstallRecommendedIntegrations => {
                     self.install_recommended_integrations()
                 }

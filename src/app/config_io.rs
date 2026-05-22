@@ -86,6 +86,20 @@ impl App {
         }
     }
 
+    pub(super) fn save_entity_color_toggle(
+        &mut self,
+        field: crate::config::EntityColorField,
+        enabled: bool,
+    ) {
+        let key = field.toml_key();
+        let context = format!("entity color {key}");
+        if self.update_config_file(&context, |content| {
+            crate::config::upsert_section_bool(content, "ui.entity_color", key, enabled)
+        }) {
+            self.apply_config_from_disk(false);
+        }
+    }
+
     pub(super) fn save_agent_panel_scope(&mut self, scope: crate::app::state::AgentPanelScope) {
         let value = match scope {
             crate::app::state::AgentPanelScope::CurrentWorkspace => {

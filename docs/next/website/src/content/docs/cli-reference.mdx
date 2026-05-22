@@ -53,10 +53,10 @@ Use `default` as the session name when you need to stop the default session expl
 
 ```bash
 herdr workspace list
-herdr workspace create [--cwd PATH] [--label TEXT] [--focus] [--no-focus]
+herdr workspace create [--cwd PATH] [--label TEXT] [--color COLOR] [--focus] [--no-focus]
 herdr workspace get <workspace_id>
 herdr workspace focus <workspace_id>
-herdr workspace rename <workspace_id> <label>
+herdr workspace rename <workspace_id> [<label>] [--color COLOR]
 herdr workspace close <workspace_id>
 ```
 
@@ -66,16 +66,44 @@ Create a workspace without stealing focus:
 herdr workspace create --cwd ~/project --label api --no-focus
 ```
 
+Set or change a workspace's color (also see [Colors](#colors)):
+
+```bash
+herdr workspace create --cwd ~/project --label api --color "#89b4fa"
+herdr workspace rename 1 --color orange       # recolor without renaming
+```
+
 ## Tabs
 
 ```bash
 herdr tab list [--workspace <workspace_id>]
-herdr tab create [--workspace <workspace_id>] [--cwd PATH] [--label TEXT] [--focus] [--no-focus]
+herdr tab create [--workspace <workspace_id>] [--cwd PATH] [--label TEXT] [--color COLOR] [--focus] [--no-focus]
 herdr tab get <tab_id>
 herdr tab focus <tab_id>
-herdr tab rename <tab_id> <label>
+herdr tab rename <tab_id> [<label>] [--color COLOR]
 herdr tab close <tab_id>
 ```
+
+## Colors
+
+Workspaces and tabs each carry an optional color used as a visual cue in
+the tab bar, pane background, and sidebar. Accepted formats:
+
+- Named: `red`, `green`, `blue`, `cyan`, `magenta`, `orange`, `pink`,
+  `purple`, `yellow`, `gray`, `darkgray`, plus the bright variants
+  (`lightred`, …).
+- Hex: `#89b4fa` (or short `#8bf`).
+- RGB: `rgb(137, 180, 250)`.
+- `default` clears the color (falls back to auto-assigned, see below).
+
+With `[ui.entity_color] auto_assign = true` (the default), workspaces and
+tabs without an explicit color get a deterministic color via a 3D Halton
+sequence in OKLCH space — perceptually spread, stable across restarts,
+and shared between a workspace and its first tab.
+
+The five render targets (tab background, pane background, sidebar accent,
+inactive tab label, pane border) are individually toggleable in
+**settings → colors** or in `[ui.entity_color]` in `config.toml`.
 
 ## Panes
 

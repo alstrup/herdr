@@ -42,6 +42,7 @@ fn workspace_create(args: &[String]) -> std::io::Result<i32> {
     let mut cwd = None;
     let mut focus = false;
     let mut label = None;
+    let mut color = None;
 
     let mut index = 0;
     while index < args.len() {
@@ -62,6 +63,14 @@ fn workspace_create(args: &[String]) -> std::io::Result<i32> {
                 label = Some(value.clone());
                 index += 2;
             }
+            "--color" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("missing value for --color");
+                    return Ok(2);
+                };
+                color = Some(value.clone());
+                index += 2;
+            }
             "--focus" => {
                 focus = true;
                 index += 1;
@@ -79,7 +88,12 @@ fn workspace_create(args: &[String]) -> std::io::Result<i32> {
 
     super::print_response(&super::send_request(&Request {
         id: "cli:workspace:create".into(),
-        method: Method::WorkspaceCreate(WorkspaceCreateParams { cwd, focus, label }),
+        method: Method::WorkspaceCreate(WorkspaceCreateParams {
+            cwd,
+            focus,
+            label,
+            color,
+        }),
     })?)
 }
 
@@ -120,16 +134,50 @@ fn workspace_focus(args: &[String]) -> std::io::Result<i32> {
 }
 
 fn workspace_rename(args: &[String]) -> std::io::Result<i32> {
-    if args.len() < 2 {
-        eprintln!("usage: herdr workspace rename <workspace_id> <label>");
+    if args.is_empty() {
+        eprintln!("usage: herdr workspace rename <workspace_id> [<label>] [--color COLOR]");
+        return Ok(2);
+    }
+
+    let workspace_id = super::normalize_workspace_id(&args[0]);
+    let mut color = None;
+    let mut label_parts: Vec<String> = Vec::new();
+
+    let mut index = 1;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--color" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("missing value for --color");
+                    return Ok(2);
+                };
+                color = Some(value.clone());
+                index += 2;
+            }
+            other => {
+                label_parts.push(other.to_string());
+                index += 1;
+            }
+        }
+    }
+
+    let label = if label_parts.is_empty() {
+        None
+    } else {
+        Some(label_parts.join(" "))
+    };
+
+    if label.is_none() && color.is_none() {
+        eprintln!("usage: herdr workspace rename <workspace_id> [<label>] [--color COLOR]");
         return Ok(2);
     }
 
     super::print_response(&super::send_request(&Request {
         id: "cli:workspace:rename".into(),
         method: Method::WorkspaceRename(WorkspaceRenameParams {
-            workspace_id: super::normalize_workspace_id(&args[0]),
-            label: args[1..].join(" "),
+            workspace_id,
+            label,
+            color,
         }),
     })?)
 }
@@ -155,9 +203,12 @@ fn workspace_close(args: &[String]) -> std::io::Result<i32> {
 fn print_workspace_help() {
     eprintln!("herdr workspace commands:");
     eprintln!("  herdr workspace list");
-    eprintln!("  herdr workspace create [--cwd PATH] [--label TEXT] [--focus] [--no-focus]");
+    eprintln!("  herdr workspace create [--cwd PATH] [--label TEXT] [--color COLOR] [--focus] [--no-focus]");
     eprintln!("  herdr workspace get <workspace_id>");
     eprintln!("  herdr workspace focus <workspace_id>");
-    eprintln!("  herdr workspace rename <workspace_id> <label>");
+    eprintln!("  herdr workspace rename <workspace_id> [<label>] [--color COLOR]");
     eprintln!("  herdr workspace close <workspace_id>");
+    eprintln!();
+    eprintln!("Color accepts a named color (red, blue, cyan, orange, pink, ...),");
+    eprintln!("a hex code (#89b4fa), or rgb(r,g,b). Use \"default\" to clear.");
 }

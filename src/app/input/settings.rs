@@ -6,7 +6,7 @@ use crate::{
         state::{AppState, SettingsSection, THEME_NAMES},
         App, Mode,
     },
-    config::ToastDelivery,
+    config::{EntityColorField, ToastDelivery},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +17,7 @@ pub(super) enum SettingsAction {
     SaveSound(bool),
     SaveToastDelivery(ToastDelivery),
     SaveAgentBorderLabels(bool),
+    SaveEntityColorToggle(EntityColorField, bool),
     InstallRecommendedIntegrations,
 }
 
@@ -30,6 +31,9 @@ impl App {
                 SettingsAction::SaveToastDelivery(delivery) => self.save_toast_delivery(delivery),
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
+                }
+                SettingsAction::SaveEntityColorToggle(field, enabled) => {
+                    self.save_entity_color_toggle(field, enabled)
                 }
                 SettingsAction::InstallRecommendedIntegrations => {
                     self.install_recommended_integrations()
@@ -208,6 +212,35 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
                 state.settings.list.selected = toast_delivery_index(state.toast_delivery());
             }
             KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
+                state.settings.section = SettingsSection::Colors;
+                state.settings.list.selected = 0;
+            }
+            _ => {
+                if let Some(super::modal::ModalAction::Close) =
+                    super::modal::modal_action_from_key(&key, super::modal::SETTINGS_ACTIONS)
+                {
+                    cancel_settings(state);
+                }
+            }
+        },
+        SettingsSection::Colors => match key.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                state.settings.list.move_prev();
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                state.settings.list.move_next(EntityColorField::ALL.len());
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                let idx = state.settings.list.selected.min(EntityColorField::ALL.len() - 1);
+                let field = EntityColorField::ALL[idx];
+                let enabled = !field.get(&state.entity_color);
+                return Some(SettingsAction::SaveEntityColorToggle(field, enabled));
+            }
+            KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
+                state.settings.section = SettingsSection::PaneLabels;
+                state.settings.list.selected = usize::from(!state.agent_border_labels_enabled());
+            }
+            KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
                 state.settings.section = SettingsSection::Integrations;
                 state.settings.list.selected = 0;
             }
@@ -224,8 +257,8 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
                 return Some(SettingsAction::InstallRecommendedIntegrations);
             }
             KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
-                state.settings.section = SettingsSection::PaneLabels;
-                state.settings.list.selected = usize::from(!state.agent_border_labels_enabled());
+                state.settings.section = SettingsSection::Colors;
+                state.settings.list.selected = 0;
             }
             KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
                 state.settings.section = SettingsSection::Theme;
@@ -255,6 +288,7 @@ pub(crate) fn open_settings_at(state: &mut AppState, section: SettingsSection) {
         SettingsSection::Sound => usize::from(!state.sound_enabled()),
         SettingsSection::Toast => toast_delivery_index(state.toast_delivery()),
         SettingsSection::PaneLabels => usize::from(!state.agent_border_labels_enabled()),
+        SettingsSection::Colors => 0,
         SettingsSection::Integrations => 0,
     };
     state.mode = Mode::Settings;
@@ -344,6 +378,15 @@ impl AppState {
                     None
                 }
             }
+            SettingsSection::Colors => {
+                let list_y = area.y + 3;
+                let n = EntityColorField::ALL.len() as u16;
+                if row >= list_y && row < list_y + n {
+                    Some((row - list_y) as usize)
+                } else {
+                    None
+                }
+            }
             SettingsSection::Integrations => None,
         }
     }
@@ -360,6 +403,7 @@ impl AppState {
                         SettingsSection::PaneLabels => {
                             usize::from(!self.agent_border_labels_enabled())
                         }
+                        SettingsSection::Colors => 0,
                         SettingsSection::Integrations => 0,
                     });
                     return None;
@@ -382,6 +426,12 @@ impl AppState {
                         SettingsSection::PaneLabels => {
                             let enabled = idx == 0;
                             Some(SettingsAction::SaveAgentBorderLabels(enabled))
+                        }
+                        SettingsSection::Colors => {
+                            let i = idx.min(EntityColorField::ALL.len() - 1);
+                            let field = EntityColorField::ALL[i];
+                            let enabled = !field.get(&self.entity_color);
+                            Some(SettingsAction::SaveEntityColorToggle(field, enabled))
                         }
                         SettingsSection::Integrations => None,
                     };

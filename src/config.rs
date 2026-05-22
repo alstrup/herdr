@@ -19,10 +19,11 @@ pub use self::{
     },
     model::{
         validated_sidebar_bounds, AgentPanelScopeConfig, Config, ConfigReloadReport,
-        ConfigReloadStatus, KeysConfig, ToastConfig, ToastDelivery,
+        ConfigReloadStatus, EntityColorConfig, EntityColorField, KeysConfig, ToastConfig,
+        ToastDelivery,
     },
     sound::SoundConfig,
-    theme::{parse_color, CustomThemeColors, ThemeConfig},
+    theme::{parse_color, try_parse_color, CustomThemeColors, ThemeConfig},
 };
 
 pub(crate) use self::io::upsert_top_level_bool;
