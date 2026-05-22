@@ -227,6 +227,107 @@ pub struct UiConfig {
     pub toast: ToastConfig,
     /// Play sounds when agents change state in background workspaces.
     pub sound: SoundConfig,
+    /// Where user-assigned tab/workspace colors are rendered.
+    pub entity_color: EntityColorConfig,
+}
+
+/// Controls where CLI-assigned workspace/tab colors show up in the UI.
+/// All targets can be combined freely.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(default)]
+pub struct EntityColorConfig {
+    /// Color the tab label text in the tab bar. Default: true.
+    pub tab_label: bool,
+    /// Use the color as the background of the active tab. Default: true.
+    pub tab_background: bool,
+    /// Tint the workspace dot/marker in the sidebar list. Default: true.
+    pub status_accent: bool,
+    /// Color the borders of panes inside a colored tab/workspace. Default: false.
+    pub pane_border: bool,
+    /// Tint the entire pane area as a faint background. Terminal cells with
+    /// their own background paint over this; cells with default background
+    /// keep the tint, giving a subtle "where am I" cue. Default: true.
+    pub pane_background: bool,
+    /// Automatically assign a deterministic color to workspaces and tabs
+    /// that don't have one set explicitly. Uses a 3D Halton sequence in
+    /// OKLCH space so colors spread out perceptually evenly. Default: true.
+    pub auto_assign: bool,
+}
+
+/// Toggleable field of [`EntityColorConfig`]. Used by the settings UI to
+/// drive the toggles list and by config persistence to write back to TOML.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntityColorField {
+    AutoAssign,
+    TabBackground,
+    PaneBackground,
+    StatusAccent,
+    TabLabel,
+    PaneBorder,
+}
+
+impl EntityColorField {
+    /// Ordered list shown in the settings UI. Master toggle first, then
+    /// background-based cues (the strong landmarks), then foreground cues.
+    pub const ALL: &[Self] = &[
+        Self::AutoAssign,
+        Self::TabBackground,
+        Self::PaneBackground,
+        Self::StatusAccent,
+        Self::TabLabel,
+        Self::PaneBorder,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::AutoAssign => "auto-assign colors",
+            Self::TabBackground => "tab background",
+            Self::PaneBackground => "pane background tint",
+            Self::StatusAccent => "sidebar accent",
+            Self::TabLabel => "inactive tab label color",
+            Self::PaneBorder => "pane border color",
+        }
+    }
+
+    pub fn toml_key(self) -> &'static str {
+        match self {
+            Self::AutoAssign => "auto_assign",
+            Self::TabBackground => "tab_background",
+            Self::PaneBackground => "pane_background",
+            Self::StatusAccent => "status_accent",
+            Self::TabLabel => "tab_label",
+            Self::PaneBorder => "pane_border",
+        }
+    }
+
+    pub fn get(self, cfg: &EntityColorConfig) -> bool {
+        match self {
+            Self::AutoAssign => cfg.auto_assign,
+            Self::TabBackground => cfg.tab_background,
+            Self::PaneBackground => cfg.pane_background,
+            Self::StatusAccent => cfg.status_accent,
+            Self::TabLabel => cfg.tab_label,
+            Self::PaneBorder => cfg.pane_border,
+        }
+    }
+}
+
+impl Default for EntityColorConfig {
+    fn default() -> Self {
+        Self {
+            // Backgrounds are pre-attentive landmarks — default to them.
+            tab_background: true,
+            pane_background: true,
+            // Chunky tinted marker in the sidebar reads as a background patch.
+            status_accent: true,
+            // Foreground / outline cues are weaker — off by default.
+            tab_label: false,
+            pane_border: false,
+            // Spreading distinct colors automatically means users get the
+            // visual landmarks immediately without manually tagging anything.
+            auto_assign: true,
+        }
+    }
 }
 
 /// Cursor shape (DECSCUSR) used for the forced IME anchor.
@@ -366,6 +467,7 @@ impl Default for UiConfig {
             accent: "cyan".into(),
             toast: ToastConfig::default(),
             sound: SoundConfig::default(),
+            entity_color: EntityColorConfig::default(),
         }
     }
 }

@@ -45,6 +45,15 @@ impl App {
         id: String,
         params: WorkspaceCreateParams,
     ) -> String {
+        if let Some(color) = params.color.as_deref() {
+            if crate::config::try_parse_color(color).is_none() {
+                return encode_error(
+                    id,
+                    "invalid_color",
+                    format!("invalid color: {color}"),
+                );
+            }
+        }
         let cwd = params
             .cwd
             .map(PathBuf::from)
@@ -56,6 +65,11 @@ impl App {
                     if let Some(workspace) = self.state.workspaces.get_mut(index) {
                         workspace.set_custom_name(label);
                         crate::logging::workspace_renamed(&workspace.id);
+                    }
+                }
+                if let Some(color) = params.color {
+                    if let Some(workspace) = self.state.workspaces.get_mut(index) {
+                        workspace.set_color(Some(color));
                     }
                 }
                 let workspace = self.workspace_info(index);
@@ -113,22 +127,45 @@ impl App {
         id: String,
         params: WorkspaceRenameParams,
     ) -> String {
+        if params.label.is_none() && params.color.is_none() {
+            return encode_error(
+                id,
+                "invalid_request",
+                "workspace rename requires label or color",
+            );
+        }
+        if let Some(color) = params.color.as_deref() {
+            if crate::config::try_parse_color(color).is_none() {
+                return encode_error(
+                    id,
+                    "invalid_color",
+                    format!("invalid color: {color}"),
+                );
+            }
+        }
         let Some(index) = self.parse_workspace_id(&params.workspace_id) else {
             return workspace_not_found(id, &params.workspace_id);
         };
         let Some(ws) = self.state.workspaces.get_mut(index) else {
             return workspace_not_found(id, &params.workspace_id);
         };
-        ws.set_custom_name(params.label.clone());
+        if let Some(label) = params.label.clone() {
+            ws.set_custom_name(label);
+        }
+        if let Some(color) = params.color.clone() {
+            ws.set_color(Some(color));
+        }
         crate::logging::workspace_renamed(&ws.id);
         self.schedule_session_save();
-        self.emit_event(EventEnvelope {
-            event: EventKind::WorkspaceRenamed,
-            data: EventData::WorkspaceRenamed {
-                workspace_id: self.public_workspace_id(index),
-                label: params.label,
-            },
-        });
+        if let Some(label) = params.label {
+            self.emit_event(EventEnvelope {
+                event: EventKind::WorkspaceRenamed,
+                data: EventData::WorkspaceRenamed {
+                    workspace_id: self.public_workspace_id(index),
+                    label,
+                },
+            });
+        }
 
         encode_success(
             id,

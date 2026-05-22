@@ -8,7 +8,8 @@ use ratatui::{
 
 use super::widgets::{
     action_button_row_rects, centered_popup_rect, modal_stack_areas, panel_contrast_fg,
-    render_action_button, render_modal_choice_list, render_panel_shell, ActionButtonSpec,
+    render_action_button, render_modal_choice_list, render_modal_description, render_panel_shell,
+    ActionButtonSpec,
 };
 use crate::{
     app::{state::Palette, AppState},
@@ -130,6 +131,9 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
                 app.agent_border_labels_enabled(),
                 app.settings.list.selected,
             );
+        }
+        SettingsSection::Colors => {
+            render_settings_colors(app, frame, content_area);
         }
         SettingsSection::Integrations => {
             render_settings_integrations(app, frame, content_area);
@@ -374,4 +378,61 @@ fn render_settings_toggle(
         p,
         1,
     );
+}
+
+fn render_settings_colors(app: &AppState, frame: &mut Frame, area: Rect) {
+    use crate::config::EntityColorField;
+
+    let p = &app.palette;
+    let [desc_area, _, list_area] = Layout::vertical([
+        Constraint::Length(2),
+        Constraint::Length(1),
+        Constraint::Min(2),
+    ])
+    .areas::<3>(area);
+
+    render_modal_description(
+        frame,
+        desc_area,
+        "where to render workspace/tab colors — backgrounds register pre-attentively, so leave those on by default",
+        Style::default().fg(p.overlay1),
+    );
+
+    let selected = app.settings.list.selected;
+    for (idx, field) in EntityColorField::ALL.iter().enumerate() {
+        let row_y = list_area.y + idx as u16;
+        if row_y >= list_area.y + list_area.height {
+            break;
+        }
+        let is_selected = idx == selected;
+        let enabled = field.get(&app.entity_color);
+        let row_style = if is_selected {
+            Style::default()
+                .bg(p.surface0)
+                .fg(p.text)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(p.subtext0)
+        };
+        let value_style = if enabled {
+            Style::default()
+                .fg(p.green)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(p.overlay0)
+        };
+        let label = field.label();
+        let value = if enabled { "✓ on" } else { "✗ off" };
+        let pad = list_area.width.saturating_sub(label.len() as u16 + value.len() as u16 + 3) as usize;
+        let line = Line::from(vec![
+            Span::styled(format!(" {label}"), row_style),
+            Span::styled(" ".repeat(pad), row_style),
+            Span::styled(value, value_style),
+            Span::styled(" ", row_style),
+        ]);
+        frame.render_widget(
+            Paragraph::new(line),
+            Rect::new(list_area.x, row_y, list_area.width, 1),
+        );
+    }
 }

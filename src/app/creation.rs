@@ -202,6 +202,7 @@ impl App {
             focused: self.state.active == Some(ws_idx) && ws.active_tab == tab_idx,
             pane_count: tab.panes.len(),
             agent_status: pane_agent_status(agg_state, seen),
+            color: tab.color.clone(),
         })
     }
 
@@ -302,6 +303,7 @@ impl App {
                 .public_tab_id(index, ws.active_tab)
                 .unwrap_or_else(|| format!("{}:{}", ws.id, ws.active_tab + 1)),
             agent_status: pane_agent_status(agg_state, seen),
+            color: ws.color.clone(),
         }
     }
 }

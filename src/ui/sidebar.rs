@@ -8,6 +8,9 @@ use ratatui::{
 
 use super::scrollbar::{render_scrollbar, should_show_scrollbar};
 use super::status::{agent_icon, state_dot, state_label, state_label_color};
+use super::widgets::{
+    blend_toward, contrast_fg_for, host_terminal_bg, workspace_color, ENTITY_TINT_ALPHA,
+};
 use crate::app::state::{AgentPanelScope, Palette};
 use crate::app::{AppState, Mode};
 use crate::detect::AgentState;
@@ -849,14 +852,33 @@ fn render_workspace_list(
         let highlighted = selected || is_active || is_dragged;
         let (agg_state, agg_seen) = ws.aggregate_state(&app.terminals);
 
-        if highlighted {
-            let bg = if selected {
+        // When status_accent is on and the workspace has a color, paint
+        // the row with the workspace color. The active workspace uses the
+        // same blended tint as its pane/active tab so the surfaces merge.
+        let ws_color_bg = if app.entity_color.status_accent {
+            workspace_color(app, ws).map(|color| {
+                if is_active {
+                    blend_toward(host_terminal_bg(app), color, ENTITY_TINT_ALPHA)
+                } else {
+                    color
+                }
+            })
+        } else {
+            None
+        };
+
+        let row_bg = ws_color_bg.or_else(|| {
+            let highlight_bg = if selected {
                 p.surface0
             } else if is_dragged {
                 p.surface1
             } else {
                 p.surface_dim
             };
+            highlighted.then_some(highlight_bg)
+        });
+
+        if let Some(bg) = row_bg {
             let buf = frame.buffer_mut();
             for y in row_y..row_y + row_height {
                 if y >= list_bottom {
@@ -868,7 +890,13 @@ fn render_workspace_list(
             }
         }
 
-        let name_style = if selected || is_active || is_dragged {
+        let name_style = if let Some(bg) = ws_color_bg {
+            let mut style = Style::default().fg(contrast_fg_for(bg, p));
+            if selected || is_active || is_dragged {
+                style = style.add_modifier(Modifier::BOLD);
+            }
+            style
+        } else if selected || is_active || is_dragged {
             Style::default().fg(p.text).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(p.subtext0)
@@ -942,7 +970,9 @@ fn render_workspace_list(
                 } else {
                     branch
                 };
-                let branch_color = if selected || is_active {
+                let branch_color = if let Some(bg) = ws_color_bg {
+                    contrast_fg_for(bg, p)
+                } else if selected || is_active {
                     p.mauve
                 } else {
                     p.overlay0
@@ -965,6 +995,25 @@ fn render_workspace_list(
                     Paragraph::new(Line::from(spans)),
                     Rect::new(card.rect.x, row_y + 1, card.rect.width, 1),
                 );
+            }
+        }
+
+        if selected {
+            // A solid contrasting bar on the leftmost column makes the
+            // current selection unambiguous, even when the row already
+            // carries a workspace color.
+            let marker_bg = match row_bg {
+                Some(bg) => contrast_fg_for(bg, p),
+                None => p.accent,
+            };
+            let buf = frame.buffer_mut();
+            let bar_x = card.rect.x;
+            for y in row_y..row_y + row_height {
+                if y >= list_bottom {
+                    break;
+                }
+                buf[(bar_x, y)].set_symbol(" ");
+                buf[(bar_x, y)].set_style(Style::default().bg(marker_bg));
             }
         }
     }

@@ -670,6 +670,7 @@ pub enum SettingsSection {
     Sound,
     Toast,
     PaneLabels,
+    Colors,
     Integrations,
 }
 
@@ -679,6 +680,7 @@ impl SettingsSection {
         Self::Sound,
         Self::Toast,
         Self::PaneLabels,
+        Self::Colors,
         Self::Integrations,
     ];
 
@@ -688,6 +690,7 @@ impl SettingsSection {
             Self::Sound => "sound",
             Self::Toast => "toasts",
             Self::PaneLabels => "pane labels",
+            Self::Colors => "colors",
             Self::Integrations => "integrations",
         }
     }
@@ -1064,6 +1067,8 @@ pub struct AppState {
     pub confirm_close: bool,
     pub prompt_new_tab_name: bool,
     pub show_agent_labels_on_pane_borders: bool,
+    /// Where CLI-assigned workspace/tab colors are rendered.
+    pub entity_color: crate::config::EntityColorConfig,
     /// Expose the focused pane's cursor anchor to the outer terminal even when
     /// the pane requested `?25l`. See `[experimental] reveal_hidden_cursor_for_cjk_ime`.
     pub reveal_hidden_cursor_for_cjk_ime: bool,
@@ -1356,6 +1361,7 @@ impl AppState {
             confirm_close: true,
             prompt_new_tab_name: true,
             show_agent_labels_on_pane_borders: false,
+            entity_color: crate::config::EntityColorConfig::default(),
             reveal_hidden_cursor_for_cjk_ime: false,
             cjk_ime_agent_filter_configured: false,
             cjk_ime_agents: Vec::new(),

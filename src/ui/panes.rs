@@ -1,13 +1,13 @@
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
 use super::scrollbar::{render_pane_scrollbar, should_show_scrollbar};
-use super::widgets::panel_contrast_fg;
+use super::widgets::{blend_toward, host_terminal_bg, panel_contrast_fg, tab_color, ENTITY_TINT_ALPHA};
 use crate::app::state::Palette;
 use crate::app::{AppState, Mode};
 use crate::layout::PaneInfo;
@@ -251,18 +251,38 @@ pub(super) fn render_panes(
 
     let multi_pane = ws.layout.pane_count() > 1;
     let terminal_active = app.mode == Mode::Terminal;
+    let active_tab_color = ws.active_tab().and_then(|tab| tab_color(app, ws, tab));
+    let focused_border_color = if app.entity_color.pane_border {
+        active_tab_color.unwrap_or(app.palette.accent)
+    } else {
+        app.palette.accent
+    };
+    // For pane_background: blend the user's color toward the host terminal's
+    // native bg so text contrast (WCAG) is preserved. The active tab uses
+    // the same blend (see ui/tabs.rs) so the tab and pane visually merge.
+    let pane_bg_tint = if app.entity_color.pane_background {
+        active_tab_color.map(|color| blend_toward(host_terminal_bg(app), color, ENTITY_TINT_ALPHA))
+    } else {
+        None
+    };
 
     for info in &app.view.pane_infos {
         if let Some(rt) = app.runtime_for_pane_in_workspace(terminal_runtimes, ws_idx, info.id) {
+            if let Some(tint) = pane_bg_tint {
+                frame.render_widget(
+                    Block::default().style(Style::default().bg(tint)),
+                    info.rect,
+                );
+            }
             if multi_pane {
                 let (border_style, border_set) = if info.is_focused && terminal_active {
                     (
-                        Style::default().fg(app.palette.accent),
+                        Style::default().fg(focused_border_color),
                         ratatui::symbols::border::THICK,
                     )
                 } else if info.is_focused {
                     (
-                        Style::default().fg(app.palette.accent),
+                        Style::default().fg(focused_border_color),
                         ratatui::symbols::border::PLAIN,
                     )
                 } else {
@@ -272,10 +292,14 @@ pub(super) fn render_panes(
                     )
                 };
 
+                let block_style = pane_bg_tint
+                    .map(|tint| Style::default().bg(tint))
+                    .unwrap_or_default();
                 let mut block = Block::default()
                     .borders(Borders::ALL)
                     .border_style(border_style)
-                    .border_set(border_set);
+                    .border_set(border_set)
+                    .style(block_style);
                 if let Some(title) = ws
                     .pane_state(info.id)
                     .and_then(|pane| app.terminals.get(&pane.attached_terminal_id))
@@ -291,6 +315,23 @@ pub(super) fn render_panes(
 
             let show_cursor = info.is_focused && terminal_active && !pane_is_scrolled_back(rt);
             rt.render(frame, info.inner_rect, show_cursor);
+            if let Some(tint) = pane_bg_tint {
+                // The terminal runtime writes Color::Reset for blank cells,
+                // wiping the tint painted by the block. Re-apply the tint to
+                // any cell that still has Reset as its background, leaving
+                // explicitly-styled cells alone. Preserve fg/modifier so
+                // text-on-default-bg keeps its color.
+                let inner = info.inner_rect;
+                let buf = frame.buffer_mut();
+                for y in inner.y..inner.y + inner.height {
+                    for x in inner.x..inner.x + inner.width {
+                        let cell = &mut buf[(x, y)];
+                        if cell.bg == Color::Reset {
+                            cell.bg = tint;
+                        }
+                    }
+                }
+            }
             render_pane_scrollbar(app, frame, info, rt);
 
             let should_dim = !info.is_focused && multi_pane && !terminal_active;

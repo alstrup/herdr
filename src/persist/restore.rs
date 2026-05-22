@@ -108,6 +108,7 @@ fn restore_workspace(
                 .clone()
                 .unwrap_or_else(crate::workspace::generate_workspace_id),
             custom_name: snap.custom_name.clone(),
+            color: snap.color.clone(),
             identity_cwd: snap.identity_cwd.clone(),
             cached_git_branch: crate::workspace::git_branch(&snap.identity_cwd),
             cached_git_ahead_behind: None,
@@ -253,6 +254,7 @@ fn restore_tab(
     Some((
         crate::workspace::Tab {
             custom_name: snap.custom_name.clone(),
+            color: snap.color.clone(),
             number,
             root_pane,
             layout,

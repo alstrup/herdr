@@ -5,7 +5,10 @@ use ratatui::{
     Frame,
 };
 
-use super::widgets::panel_contrast_fg;
+use super::widgets::{
+    blend_toward, contrast_fg_for, host_terminal_bg, panel_contrast_fg, tab_color,
+    ENTITY_TINT_ALPHA,
+};
 use crate::app::AppState;
 
 const MIN_TAB_WIDTH: u16 = 8;
@@ -308,13 +311,34 @@ pub(super) fn render_tab_bar(app: &AppState, frame: &mut Frame, area: Rect) {
             continue;
         }
         let active = idx == ws.active_tab;
-        let style = if active {
+        let entity_color = tab_color(app, ws, tab);
+        let style = if let Some(color) =
+            entity_color.filter(|_| app.entity_color.tab_background)
+        {
+            // Active tab shares the pane's tinted bg so the two visually
+            // merge into one continuous "you are here" surface. Inactive
+            // tabs keep the full color so they remain strong landmarks on
+            // the bar.
+            let bg = if active {
+                blend_toward(host_terminal_bg(app), color, ENTITY_TINT_ALPHA)
+            } else {
+                color
+            };
+            let base = Style::default().fg(contrast_fg_for(bg, p)).bg(bg);
+            if tab.is_auto_named() {
+                base.add_modifier(Modifier::DIM)
+            } else {
+                base
+            }
+        } else if active {
             let base = Style::default().fg(panel_contrast_fg(p)).bg(p.accent);
             if tab.is_auto_named() {
                 base.add_modifier(Modifier::DIM)
             } else {
                 base.add_modifier(Modifier::BOLD)
             }
+        } else if let Some(color) = entity_color.filter(|_| app.entity_color.tab_label) {
+            Style::default().fg(color).bg(p.surface0)
         } else if tab.is_auto_named() {
             Style::default()
                 .fg(p.overlay0)

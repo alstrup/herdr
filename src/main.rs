@@ -186,6 +186,18 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
 # Accepts: hex (#89b4fa), named colors (cyan, blue, magenta), or rgb(r,g,b)
 # accent = "cyan"
 
+# Per-workspace and per-tab color cues. Each toggle picks one place to
+# render the color the CLI sets (or that auto_assign generates).
+# Backgrounds register pre-attentively, so default ON; foreground/outline
+# cues default OFF to avoid visual clutter.
+# [ui.entity_color]
+# auto_assign     = true     # deterministic per-name colors via Halton + OKLCH
+# tab_background  = true     # solid color on the tab in the tab bar
+# pane_background = true     # faint tint on the pane area (blended toward host bg)
+# status_accent   = true     # color the workspace row in the sidebar
+# tab_label       = false    # tint inactive tab label text
+# pane_border     = false    # tint pane border on the focused split
+
 # Background notification popup delivery
 [ui.toast]
 # off = disable pop-up notifications
