@@ -1,5 +1,21 @@
-# herdr
+# novice herdr
 
+> Downstream fork of [ogulcancelik/herdr](https://github.com/ogulcancelik/herdr)
+> aimed at making the tool friendlier for people who don't know the keyboard
+> shortcuts yet — auto-colored workspaces and tabs, `×` close buttons, bolder
+> `+` new buttons. Everything below is the upstream README; the novice-specific
+> additions are listed in [CHANGELOG.md](CHANGELOG.md).
+
+## Install (novice herdr)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alstrup/herdr/master/scripts/install-novice.sh | sh
+```
+
+That downloads the latest pre-built binary from this fork's GitHub releases.
+For the upstream install instructions, keep reading.
+
+---
 
 <p align="center">
   <img src="assets/logo.png" alt="herdr" width="100" />

@@ -1,11 +1,11 @@
 [package]
 name = "herdr"
-version = "0.6.0"
+version = "0.6.0-novice.1"
 edition = "2021"
 build = "build.rs"
-description = "terminal workspace manager for AI coding agents"
+description = "novice-friendly fork of herdr — adds mouse close/new buttons and auto workspace colors"
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/ogulcancelik/herdr"
+repository = "https://github.com/alstrup/herdr"
 homepage = "https://herdr.dev"
 keywords = ["terminal", "tui", "ai", "agents", "multiplexer"]
 categories = ["command-line-utilities"]

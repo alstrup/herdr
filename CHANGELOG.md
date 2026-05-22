@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+> This is the **novice herdr** fork — a downstream variant of
+> [ogulcancelik/herdr](https://github.com/ogulcancelik/herdr) aimed at
+> making the app friendlier for people who don't know the keyboard
+> shortcuts yet. Everything here is on top of upstream herdr.
+
+## [0.6.0-novice.1] - 2026-05-22
 
 ### Added
 - Added per-workspace and per-tab colors. `herdr workspace create|rename` and `herdr tab create|rename` accept `--color <name|#hex|rgb(r,g,b)>`; colors persist across restarts.
