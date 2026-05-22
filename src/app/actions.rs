@@ -754,6 +754,42 @@ impl AppState {
             self.refresh_tab_bar_view();
         }
     }
+
+    /// Close a specific tab without changing the active tab/workspace
+    /// (unless that tab was the last one in its workspace, in which case
+    /// the workspace is closed via the usual confirm flow).
+    pub fn close_tab_at(&mut self, ws_idx: usize, tab_idx: usize) {
+        self.selection = None;
+        self.selection_autoscroll = None;
+        self.mark_session_dirty();
+        let Some(ws) = self.workspaces.get(ws_idx) else {
+            return;
+        };
+        if tab_idx >= ws.tabs.len() {
+            return;
+        }
+        if ws.tabs.len() <= 1 {
+            // Closing the last tab in a workspace collapses the workspace.
+            // Mirror the active-path: route through the workspace close so
+            // confirm-on-close and terminal cleanup still apply.
+            self.selected = ws_idx;
+            self.close_selected_workspace();
+            return;
+        }
+        let terminal_ids = self.terminal_ids_for_tab(ws_idx, tab_idx);
+        let workspace_id = ws.id.clone();
+        let closing_tab_id = format!("{}:{}", workspace_id, tab_idx + 1);
+        let Some(ws_mut) = self.workspaces.get_mut(ws_idx) else {
+            return;
+        };
+        if !ws_mut.close_tab(tab_idx) {
+            return;
+        }
+        self.remove_unattached_terminal_ids(terminal_ids);
+        crate::logging::tab_closed(&workspace_id, &closing_tab_id);
+        self.tab_scroll_follow_active = true;
+        self.refresh_tab_bar_view();
+    }
 }
 
 // ---------------------------------------------------------------------------

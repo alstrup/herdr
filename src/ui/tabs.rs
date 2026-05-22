@@ -15,6 +15,22 @@ const MIN_TAB_WIDTH: u16 = 8;
 const NEW_TAB_WIDTH: u16 = 3;
 const TAB_SCROLL_BUTTON_WIDTH: u16 = 3;
 
+/// Minimum tab width before we render the `×` close affordance. Below this
+/// the label has too little room to keep both name and close button legible.
+pub(crate) const TAB_CLOSE_BUTTON_MIN_WIDTH: u16 = 6;
+/// Character drawn at the right edge of each tab as the close hit target.
+pub(crate) const TAB_CLOSE_GLYPH: &str = "×";
+
+/// X-position of the close-button cell inside a tab rect, or None if the
+/// tab is too narrow to show it.
+pub(crate) fn tab_close_button_x(rect: ratatui::layout::Rect) -> Option<u16> {
+    if rect.width >= TAB_CLOSE_BUTTON_MIN_WIDTH {
+        Some(rect.x + rect.width - 1)
+    } else {
+        None
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub(crate) struct TabBarView {
     pub scroll: usize,
@@ -349,7 +365,17 @@ pub(super) fn render_tab_bar(app: &AppState, frame: &mut Frame, area: Rect) {
         };
         let width = rect.width as usize;
         let name = tab.display_name();
-        let text = format!(" {:width$}", name, width = width.saturating_sub(1));
+        let text = if rect.width >= TAB_CLOSE_BUTTON_MIN_WIDTH {
+            // Reserve one cell on the right for the × close button.
+            format!(
+                " {:width$}{}",
+                name,
+                TAB_CLOSE_GLYPH,
+                width = width.saturating_sub(2)
+            )
+        } else {
+            format!(" {:width$}", name, width = width.saturating_sub(1))
+        };
         frame.render_widget(Paragraph::new(text).style(style), rect);
     }
 

@@ -427,6 +427,12 @@ impl AppState {
                     return None;
                 }
                 if let (Some(ws_idx), Some(tab_idx)) =
+                    (self.active, self.tab_close_at(mouse.column, mouse.row))
+                {
+                    self.close_tab_at(ws_idx, tab_idx);
+                    return None;
+                }
+                if let (Some(ws_idx), Some(tab_idx)) =
                     (self.active, self.tab_at(mouse.column, mouse.row))
                 {
                     self.tab_press = Some(TabPressState {
@@ -1124,6 +1130,18 @@ impl AppState {
                     && col >= area.x
                     && col < area.x + area.width)
                     .then_some(idx)
+            })
+    }
+
+    /// Index of the tab whose `×` close button covers `(col, row)`, if any.
+    pub(super) fn tab_close_at(&self, col: u16, row: u16) -> Option<usize> {
+        self.view
+            .tab_hit_areas
+            .iter()
+            .enumerate()
+            .find_map(|(idx, area)| {
+                let close_x = crate::ui::tab_close_button_x(*area)?;
+                (row >= area.y && row < area.y + area.height && col == close_x).then_some(idx)
             })
     }
 
@@ -2306,6 +2324,64 @@ mod tests {
         };
 
         assert_eq!(wheel_routing(input_state), WheelRouting::MouseReport);
+    }
+
+    #[test]
+    fn click_on_tab_close_button_closes_that_tab_without_changing_active() {
+        let mut app = app_for_mouse_test();
+        let mut ws = Workspace::test_new("one");
+        ws.test_add_tab(Some("two"));
+        ws.test_add_tab(Some("three"));
+        ws.switch_tab(0);
+        app.state.workspaces = vec![ws];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.mode = Mode::Terminal;
+
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+
+        let tab_rect = app.state.view.tab_hit_areas[1];
+        let close_x = crate::ui::tab_close_button_x(tab_rect).expect("close button");
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            close_x,
+            tab_rect.y,
+        ));
+
+        let ws = &app.state.workspaces[0];
+        assert_eq!(ws.tabs.len(), 2);
+        assert_eq!(ws.active_tab, 0);
+        // The remaining non-active tab is now what used to be index 2.
+        assert_eq!(ws.tabs[1].custom_name.as_deref(), Some("three"));
+    }
+
+    #[test]
+    fn click_on_tab_body_still_switches_to_that_tab() {
+        let mut app = app_for_mouse_test();
+        let mut ws = Workspace::test_new("one");
+        ws.test_add_tab(Some("two"));
+        app.state.workspaces = vec![ws];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.mode = Mode::Terminal;
+
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+
+        let tab_rect = app.state.view.tab_hit_areas[1];
+        // Click the leading-space column (definitely not the × column).
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            tab_rect.x,
+            tab_rect.y,
+        ));
+        app.handle_mouse(mouse(
+            MouseEventKind::Up(MouseButton::Left),
+            tab_rect.x,
+            tab_rect.y,
+        ));
+
+        assert_eq!(app.state.workspaces[0].active_tab, 1);
+        assert_eq!(app.state.workspaces[0].tabs.len(), 2);
     }
 
     #[test]

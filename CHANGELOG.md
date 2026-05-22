@@ -7,6 +7,7 @@
 - Added a new `colors` section in settings to toggle where the colors appear: tab background, pane background tint, sidebar accent, inactive tab label, pane border.
 - Added `auto_assign` (default on) under `[ui.entity_color]`: workspaces and tabs without an explicit color get a deterministic, perceptually-spread color via a 3D Halton sequence in OKLCH space. The first tab in a workspace inherits the workspace color so they match out of the box.
 - Pane background tint is blended toward the host terminal's reported background (OSC 11) at low alpha so WCAG text contrast is preserved; tab backgrounds stay fully saturated as landmarks. Active tab shares the pane's tinted bg so the two surfaces visually merge.
+- Added a `×` close button on each tab. Click it to close that tab without changing the active tab; if it's the only tab left in the workspace, the workspace closes (subject to confirm-on-close).
 
 ## [0.6.0] - 2026-05-20
 

@@ -75,7 +75,7 @@ pub(crate) use self::{
         mobile_switcher_workspace_doc_range, MobileSwitcherTarget,
     },
     panes::pane_is_scrolled_back,
-    tabs::compute_tab_bar_view,
+    tabs::{compute_tab_bar_view, tab_close_button_x},
     widgets::{centered_popup_rect, modal_stack_areas},
 };
 use crate::app::state::ViewLayout;
